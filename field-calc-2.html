@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Winter's Glow — Field Calculator</title>
+<style>
+  :root{
+    --matte-black:#0E0E10;
+    --card-bg:#1a1a1d;
+    --warm-ivory:#F2EDE4;
+    --glow-gold:#CBA35A;
+    --muted:#8f897c;
+    --border:#2c2c30;
+    --danger:#c65a4a;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--matte-black); color:var(--warm-ivory);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
+    padding:16px; padding-bottom:60px;
+  }
+  h1{
+    font-size:19px; text-align:center; margin:4px 0 2px; letter-spacing:.03em;
+    color:var(--warm-ivory);
+  }
+  .sub{ text-align:center; color:var(--muted); font-size:12px; margin-bottom:18px; }
+  .card{
+    background:var(--card-bg); border:1px solid var(--border); border-radius:12px;
+    padding:14px; margin-bottom:14px;
+  }
+  .card h2{
+    font-size:15px; margin:0 0 10px; color:var(--glow-gold); letter-spacing:.02em;
+    display:flex; align-items:center; gap:8px;
+  }
+  .row{ display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+  .row > div{ flex:1; min-width:80px; }
+  label{ display:block; font-size:11.5px; color:var(--muted); margin-bottom:3px; }
+  input, select{
+    width:100%; padding:10px 8px; border-radius:8px; border:1px solid var(--border);
+    background:#111113; color:var(--warm-ivory); font-size:15px;
+  }
+  input:focus, select:focus{ outline:none; border-color:var(--glow-gold); }
+  .toggle-row{ display:flex; gap:8px; margin-bottom:8px; }
+  .toggle-btn{
+    flex:1; padding:9px; border-radius:8px; border:1px solid var(--border);
+    background:#111113; color:var(--muted); font-size:13px; text-align:center; cursor:pointer;
+  }
+  .toggle-btn.active{ background:var(--glow-gold); color:#1a1a1d; border-color:var(--glow-gold); font-weight:600; }
+  .calc-btn{
+    width:100%; padding:12px; border-radius:8px; border:none; margin-top:6px;
+    background:var(--glow-gold); color:#1a1a1d; font-weight:700; font-size:14px; cursor:pointer;
+  }
+  .calc-btn:active{ opacity:.85; }
+  .preview{
+    margin-top:8px; font-size:12.5px; color:var(--muted); min-height:16px;
+  }
+  .tally-section{ margin-top:22px; }
+  .tally-header{
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;
+  }
+  .tally-header h2{ font-size:15px; color:var(--warm-ivory); margin:0; }
+  .clear-btn{
+    background:none; border:1px solid var(--border); color:var(--muted);
+    padding:5px 10px; border-radius:6px; font-size:11.5px; cursor:pointer;
+  }
+  .tally-item{
+    background:var(--card-bg); border:1px solid var(--border); border-radius:10px;
+    padding:11px; margin-bottom:8px; position:relative;
+  }
+  .tally-desc{ font-size:13.5px; line-height:1.4; margin-bottom:6px; padding-right:26px; }
+  .tally-meta{ display:flex; justify-content:space-between; font-size:12px; color:var(--muted); }
+  .tally-price{ color:var(--glow-gold); font-weight:700; font-size:14px; }
+  .remove-x{
+    position:absolute; top:8px; right:8px; width:20px; height:20px; border-radius:50%;
+    background:#2c2c30; color:var(--warm-ivory); border:none; font-size:12px; cursor:pointer;
+    line-height:1;
+  }
+  .empty-tally{ text-align:center; color:var(--muted); font-size:12.5px; padding:16px 0; }
+  .copy-hint{ font-size:11px; color:var(--muted); text-align:center; margin-top:6px; }
+</style>
+</head>
+<body>
+
+<h1>WINTER'S GLOW — FIELD CALCULATOR</h1>
+<div class="sub">Quick on-site pricing — nothing saved, closes when you leave the page</div>
+
+<!-- ROOFLINE -->
+<div class="card">
+  <h2>Roofline (C9)</h2>
+  <div class="row">
+    <div><label>Normal ft</label><input type="number" inputmode="decimal" id="roofN" placeholder="0"></div>
+    <div><label>Moderate ft</label><input type="number" inputmode="decimal" id="roofM" placeholder="0"></div>
+    <div><label>Difficult ft</label><input type="number" inputmode="decimal" id="roofD" placeholder="0"></div>
+  </div>
+  <div class="preview" id="roofPreview"></div>
+  <button class="calc-btn" onclick="calcRoofline()">Add to List</button>
+</div>
+
+<!-- WALKWAY -->
+<div class="card">
+  <h2>Walkway Lighting</h2>
+  <div class="row">
+    <div><label>Feet</label><input type="number" inputmode="decimal" id="walkFt" placeholder="0"></div>
+  </div>
+  <div class="toggle-row">
+    <div class="toggle-btn active" id="walkSingleBtn" onclick="setWalkSide(false)">One side</div>
+    <div class="toggle-btn" id="walkBothBtn" onclick="setWalkSide(true)">Both sides</div>
+  </div>
+  <div class="preview" id="walkPreview"></div>
+  <button class="calc-btn" onclick="calcWalkway()">Add to List</button>
+</div>
+
+<!-- PILLAR -->
+<div class="card">
+  <h2>Pillar / Column Wrap</h2>
+  <div class="row">
+    <div><label>Diameter (in)</label><input type="number" inputmode="decimal" id="pillarDiam" placeholder="e.g. 6"></div>
+    <div><label>Height (ft)</label><input type="number" inputmode="decimal" id="pillarHeight" placeholder="e.g. 10"></div>
+    <div><label>Qty</label><input type="number" inputmode="decimal" id="pillarQty" placeholder="1" value="1"></div>
+  </div>
+  <div class="preview" id="pillarPreview"></div>
+  <button class="calc-btn" onclick="calcPillar()">Add to List</button>
+</div>
+
+<!-- TREE -->
+<div class="card">
+  <h2>Tree Wrap (Trunk + Canopy)</h2>
+  <div class="row">
+    <div><label>Trunk diameter (in)</label><input type="number" inputmode="decimal" id="treeTrunkDiam" placeholder="e.g. 10"></div>
+    <div><label>Trunk wrap height (ft)</label><input type="number" inputmode="decimal" id="treeTrunkH" placeholder="e.g. 4"></div>
+  </div>
+  <div class="row">
+    <div><label>Canopy width (ft) <span style="color:var(--muted)">— optional</span></label><input type="number" inputmode="decimal" id="treeCanopyWidth" placeholder="leave blank if trunk only"></div>
+    <div><label>Total tree height (ft)</label><input type="number" inputmode="decimal" id="treeTotalH" placeholder="e.g. 15"></div>
+    <div><label>Qty</label><input type="number" inputmode="decimal" id="treeQty" placeholder="1" value="1"></div>
+  </div>
+  <div class="preview" id="treePreview"></div>
+  <button class="calc-btn" onclick="calcTree()">Add to List</button>
+</div>
+
+<!-- GARLAND -->
+<div class="card">
+  <h2>Garland</h2>
+  <div class="row">
+    <div style="flex:1.3">
+      <label>Garland Line</label>
+      <select id="garlandType">
+        <option value="noble" selected>Noble</option>
+        <option value="oregonWW">Oregon Foliage (Warm White)</option>
+        <option value="oregonRGBWW">Oregon Foliage (RGBWW)</option>
+      </select>
+    </div>
+    <div><label>Linear feet <span style="color:var(--muted)">(span to cover)</span></label><input type="number" inputmode="decimal" id="garlandFt" placeholder="e.g. 50"></div>
+  </div>
+  <div class="toggle-row">
+    <div class="toggle-btn active" id="noSwagBtn" onclick="setSwag(false)">No Swag</div>
+    <div class="toggle-btn" id="swagBtn" onclick="setSwag(true)">Swag (+25%)</div>
+  </div>
+  <div class="toggle-row">
+    <div class="toggle-btn active" id="bowsOnBtn" onclick="setBows(true)">Bows On</div>
+    <div class="toggle-btn" id="bowsOffBtn" onclick="setBows(false)">Bows Off</div>
+  </div>
+  <div class="preview" id="garlandPreview"></div>
+  <button class="calc-btn" onclick="calcGarland()">Add to List</button>
+</div>
+
+<!-- RUNNING TALLY -->
+<div class="tally-section">
+  <div class="tally-header">
+    <h2>Line Items For This Visit</h2>
+    <button class="clear-btn" onclick="clearTally()">Clear All</button>
+  </div>
+  <div id="tallyList"></div>
+  <div class="copy-hint" id="copyHint" style="display:none">Tap any item to copy its description + price</div>
+</div>
+
+<!-- SHOPPING LIST -->
+<div class="tally-section">
+  <div class="tally-header">
+    <h2>Shopping List &amp; Material Cost</h2>
+  </div>
+  <div id="shoppingList"></div>
+  <div id="materialTotal" style="text-align:right;font-size:15px;font-weight:700;color:var(--glow-gold);margin-top:8px"></div>
+  <div class="copy-hint">Real wholesale cost — not what the customer pays, just what you'll spend</div>
+</div>
+
+<script>
+const STRAND_RATE = 42;
+const CARD_MULT = 1.029;
+const WRAP_SPACING_IN = 5; // fixed, matches the main tool's trunk/pillar spiral spacing
+const CANOPY_SPACING_IN = 12; // fixed, matches the main tool's dense canopy wrap spacing
+const MINI_SET_COST = 10.99;
+const BULB_C9_COST = 0.59;
+const CORD_12IN_COST = 0.290; // per ft
+const CLIP_COST = 0.45; // 1 per bulb
+const STAKE_COST = 0.33; // 1 per 3ft of walkway
+const BOW_12IN_COST = 14.99;
+const GARLAND_COSTS = { noble: 79.99, oregonWW: 72.99, oregonRGBWW: 96.99 };
+const GARLAND_LABELS = { noble: "Noble", oregonWW: "Oregon Foliage (Warm White)", oregonRGBWW: "Oregon Foliage (RGBWW)" };
+const WAGE=35, BURDEN=3, LPHR=WAGE*BURDEN;
+
+let tally = [];
+let shoppingList = {}; // label -> quantity
+let materialTotal = 0; // running real wholesale $ total
+
+function money(n){ return "$"+n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function tallyMat(label, qty, cost){
+  if(!qty) return;
+  shoppingList[label] = (shoppingList[label]||0) + qty;
+  materialTotal += cost;
+}
+
+function renderShoppingList(){
+  const el = document.getElementById("shoppingList");
+  const totalEl = document.getElementById("materialTotal");
+  const labels = Object.keys(shoppingList).sort();
+  if(labels.length===0){
+    el.innerHTML = '<div class="empty-tally">Nothing added yet.</div>';
+    totalEl.textContent = "";
+    return;
+  }
+  el.innerHTML = labels.map(label=>
+    '<div class="tally-item" style="cursor:default">'
+    + '<div class="tally-meta" style="font-size:13.5px;color:var(--warm-ivory)">'
+    + '<span>'+label+'</span><span>'+(Math.round(shoppingList[label]*10)/10)+'</span></div>'
+    + '</div>'
+  ).join('');
+  totalEl.textContent = "Total material cost so far: "+money(materialTotal);
+}
+
+function addToTally(desc, price){
+  tally.push({ desc, price });
+  renderTally();
+}
+
+function removeFromTally(idx){
+  tally.splice(idx,1);
+  renderTally();
+}
+
+function clearTally(){
+  if(tally.length && !confirm("Clear all "+tally.length+" line items AND the shopping list?")) return;
+  tally = [];
+  shoppingList = {};
+  materialTotal = 0;
+  renderTally();
+  renderShoppingList();
+}
+
+function copyItem(idx){
+  const item = tally[idx];
+  const text = item.desc+"\nQty: 1\nUnit Price: "+money(item.price);
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(()=>{
+      const el = document.getElementById("copyHint");
+      const original = el.textContent;
+      el.textContent = "Copied!";
+      setTimeout(()=>{ el.textContent = original; }, 1200);
+    });
+  }
+}
+
+function renderTally(){
+  const el = document.getElementById("tallyList");
+  const hint = document.getElementById("copyHint");
+  if(tally.length===0){
+    el.innerHTML = '<div class="empty-tally">Nothing added yet — use the calculators above.</div>';
+    hint.style.display = "none";
+    return;
+  }
+  hint.style.display = "block";
+  el.innerHTML = tally.map((item,i)=>
+    '<div class="tally-item" onclick="copyItem('+i+')">'
+    + '<button class="remove-x" onclick="event.stopPropagation();removeFromTally('+i+')">\u00d7</button>'
+    + '<div class="tally-desc">'+item.desc+'</div>'
+    + '<div class="tally-meta"><span>Qty: 1</span><span class="tally-price">'+money(item.price)+'</span></div>'
+    + '</div>'
+  ).join('');
+}
+
+// ===== ROOFLINE =====
+function roofPrice(){
+  const n = parseFloat(document.getElementById("roofN").value)||0;
+  const m = parseFloat(document.getElementById("roofM").value)||0;
+  const d = parseFloat(document.getElementById("roofD").value)||0;
+  const rev = n*10 + m*10*1.15 + d*10*1.25;
+  return { totalFt: n+m+d, price: rev*CARD_MULT, n, m, d };
+}
+function updateRoofPreview(){
+  const r = roofPrice();
+  if(r.totalFt<=0){ document.getElementById("roofPreview").textContent=""; return; }
+  document.getElementById("roofPreview").textContent = "\u2192 "+r.totalFt+" ft total = "+money(r.price);
+}
+function calcRoofline(){
+  const r = roofPrice();
+  if(r.totalFt<=0) return;
+  let parts=[];
+  if(r.n>0) parts.push(r.n+"ft normal");
+  if(r.m>0) parts.push(r.m+"ft moderate");
+  if(r.d>0) parts.push(r.d+"ft difficult");
+  const desc = r.totalFt+" ft of C9 roofline lighting ("+parts.join(", ")+")";
+  addToTally(desc, r.price);
+  // material — assumes standard 12in spacing (1 bulb/clip per ft)
+  const bulbCount = Math.round(r.totalFt);
+  const cordCost = r.totalFt*CORD_12IN_COST;
+  const bulbCost = bulbCount*BULB_C9_COST;
+  const clipCost = bulbCount*CLIP_COST;
+  tallyMat("C9 socket cord, 12in spacing (ft)", r.totalFt, cordCost);
+  tallyMat("C9 bulbs", bulbCount, bulbCost);
+  tallyMat("Ridge/peak clips", bulbCount, clipCost);
+  renderShoppingList();
+  ["roofN","roofM","roofD"].forEach(id=>document.getElementById(id).value="");
+  updateRoofPreview();
+}
+
+// ===== WALKWAY =====
+let walkBoth = false;
+function setWalkSide(both){
+  walkBoth = both;
+  document.getElementById("walkSingleBtn").classList.toggle("active", !both);
+  document.getElementById("walkBothBtn").classList.toggle("active", both);
+  updateWalkPreview();
+}
+function walkPrice(){
+  const ft = parseFloat(document.getElementById("walkFt").value)||0;
+  const totalFt = walkBoth ? ft*2 : ft;
+  return { ft, totalFt, price: totalFt*7*CARD_MULT };
+}
+function updateWalkPreview(){
+  const w = walkPrice();
+  if(w.ft<=0){ document.getElementById("walkPreview").textContent=""; return; }
+  document.getElementById("walkPreview").textContent = "\u2192 "+w.ft+" ft"+(walkBoth?" \u00d7 2 sides = "+w.totalFt+" ft":"")+" = "+money(w.price);
+}
+function calcWalkway(){
+  const w = walkPrice();
+  if(w.totalFt<=0) return;
+  const desc = w.totalFt+" ft of walkway lighting"+(walkBoth?" (both sides)":"");
+  addToTally(desc, w.price);
+  const bulbCount = Math.round(w.totalFt);
+  const cordCost = w.totalFt*CORD_12IN_COST;
+  const bulbCost = bulbCount*BULB_C9_COST;
+  const stakeCount = Math.ceil(w.totalFt/3);
+  const stakeCost = stakeCount*STAKE_COST;
+  tallyMat("C9 socket cord, 12in spacing (ft)", w.totalFt, cordCost);
+  tallyMat("C9 bulbs", bulbCount, bulbCost);
+  tallyMat("Ground stakes", stakeCount, stakeCost);
+  renderShoppingList();
+  document.getElementById("walkFt").value="";
+  updateWalkPreview();
+}
+
+// ===== PILLAR =====
+function pillarCalc(){
+  const diam = parseFloat(document.getElementById("pillarDiam").value)||0;
+  const height = parseFloat(document.getElementById("pillarHeight").value)||0;
+  const qty = parseFloat(document.getElementById("pillarQty").value)||1;
+  if(diam<=0 || height<=0) return { sets:0, price:0, diam, height, qty };
+  const diamFt = diam/12;
+  const circumference = Math.PI*diamFt;
+  const revs = (height*12)/WRAP_SPACING_IN;
+  const lightFt = revs*circumference*qty;
+  const sets = Math.ceil(lightFt/25);
+  return { sets, price: sets*STRAND_RATE*CARD_MULT, diam, height, qty };
+}
+function updatePillarPreview(){
+  const p = pillarCalc();
+  if(p.sets<=0){ document.getElementById("pillarPreview").textContent=""; return; }
+  document.getElementById("pillarPreview").textContent = "\u2192 "+p.sets+" sets = "+money(p.price);
+}
+function calcPillar(){
+  const p = pillarCalc();
+  if(p.sets<=0) return;
+  const desc = p.qty+" \u00d7 "+p.height+"ft column"+(p.qty>1?"s":"")+" wrapped in mini lights ("+p.diam+"in diameter)";
+  addToTally(desc, p.price);
+  tallyMat("Mini-light sets (25ft ea)", p.sets, p.sets*MINI_SET_COST);
+  renderShoppingList();
+  ["pillarDiam","pillarHeight"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("pillarQty").value="1";
+  updatePillarPreview();
+}
+
+// ===== TREE (trunk + canopy together) =====
+function treeCalc(){
+  const trunkDiam = parseFloat(document.getElementById("treeTrunkDiam").value)||0;
+  const trunkH = parseFloat(document.getElementById("treeTrunkH").value)||0;
+  const canopyWidth = parseFloat(document.getElementById("treeCanopyWidth").value)||0;
+  const totalH = parseFloat(document.getElementById("treeTotalH").value)||0;
+  const qty = parseFloat(document.getElementById("treeQty").value)||1;
+  if(trunkDiam<=0 || trunkH<=0) return { sets:0, price:0 };
+
+  // trunk portion — always calculated
+  const diamFt = trunkDiam/12;
+  const circumference = Math.PI*diamFt;
+  const trunkRevs = (trunkH*12)/WRAP_SPACING_IN;
+  const trunkLightFt = trunkRevs*circumference*qty;
+  const trunkSets = Math.ceil(trunkLightFt/25);
+
+  // canopy portion — only if width was given (blank = trunk only)
+  let canopySets = 0, canopyH = 0;
+  if(canopyWidth>0 && totalH>trunkH){
+    canopyH = totalH-trunkH;
+    const canopyRevs = (canopyH*12)/CANOPY_SPACING_IN;
+    const avgCirc = (Math.PI*canopyWidth)/2;
+    const canopyLightFt = canopyRevs*avgCirc*qty;
+    canopySets = Math.ceil(canopyLightFt/25);
+  }
+
+  const totalSets = trunkSets+canopySets;
+  return { totalSets, price: totalSets*STRAND_RATE*CARD_MULT, trunkDiam, trunkH, canopyWidth, canopyH, totalH, qty, hasCanopy: canopySets>0 };
+}
+function updateTreePreview(){
+  const t = treeCalc();
+  if(t.totalSets<=0){ document.getElementById("treePreview").textContent=""; return; }
+  document.getElementById("treePreview").textContent = "\u2192 "+t.totalSets+" sets total"+(t.hasCanopy?" (trunk + canopy)":" (trunk only)")+" = "+money(t.price);
+}
+function calcTree(){
+  const t = treeCalc();
+  if(t.totalSets<=0) return;
+  const qtyLabel = t.qty>1 ? t.qty+" trees" : "1 tree";
+  const desc = t.hasCanopy
+    ? qtyLabel+" wrapped in mini lights \u2014 trunk ("+t.trunkDiam+"in diameter, "+t.trunkH+"ft) + canopy ("+t.canopyWidth+"ft wide, "+t.canopyH.toFixed(1)+"ft)"
+    : qtyLabel+" trunk-wrapped in mini lights ("+t.trunkDiam+"in diameter, "+t.trunkH+"ft)";
+  addToTally(desc, t.price);
+  tallyMat("Mini-light sets (25ft ea)", t.totalSets, t.totalSets*MINI_SET_COST);
+  renderShoppingList();
+  ["treeTrunkDiam","treeTrunkH","treeCanopyWidth","treeTotalH"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("treeQty").value="1";
+  updateTreePreview();
+}
+
+// ===== GARLAND =====
+let garlandSwag = false;
+let garlandBowsOn = true;
+function setSwag(on){
+  garlandSwag = on;
+  document.getElementById("noSwagBtn").classList.toggle("active", !on);
+  document.getElementById("swagBtn").classList.toggle("active", on);
+  updateGarlandPreview();
+}
+function setBows(on){
+  garlandBowsOn = on;
+  document.getElementById("bowsOnBtn").classList.toggle("active", on);
+  document.getElementById("bowsOffBtn").classList.toggle("active", !on);
+  updateGarlandPreview();
+}
+function garlandCalc(){
+  const type = document.getElementById("garlandType").value;
+  const spanFt = parseFloat(document.getElementById("garlandFt").value)||0;
+  if(spanFt<=0) return { sections:0, price:0 };
+  // swag needs more material than the straight-line span it's covering — 25% overage,
+  // a reasonable starting assumption, not derived from a specific measured job
+  const effectiveFt = garlandSwag ? spanFt*1.25 : spanFt;
+  const sections = Math.ceil(effectiveFt/9);
+  const bows = garlandBowsOn ? sections : 0; // one 12in std bow per 9ft section, if bows are on
+  const garlandCost = GARLAND_COSTS[type];
+  const matMarked = sections*garlandCost*1.85 + bows*BOW_12IN_COST*1.5;
+  const laborMin = 22*sections + 5*bows;
+  const lh = (laborMin/60)*LPHR;
+  const price = (matMarked+lh)*CARD_MULT;
+  return { sections, bows, price, type, spanFt, effectiveFt, swag: garlandSwag };
+}
+function updateGarlandPreview(){
+  const g = garlandCalc();
+  if(g.sections<=0){ document.getElementById("garlandPreview").textContent=""; return; }
+  document.getElementById("garlandPreview").textContent = "\u2192 "
+    + (g.swag ? g.spanFt+"ft span \u00d7 1.25 = "+g.effectiveFt.toFixed(1)+"ft garland, " : "")
+    + g.sections+" sections, "+g.bows+" bow"+(g.bows!==1?"s":"")+" = "+money(g.price);
+}
+function calcGarland(){
+  const g = garlandCalc();
+  if(g.sections<=0) return;
+  const desc = g.spanFt+" ft "+(g.swag?"swagged ":"")+"lit "+GARLAND_LABELS[g.type]+" garland"
+    + (g.bows>0 ? " with "+g.bows+" 12in bow"+(g.bows>1?"s":"") : ", no bows")
+    + " ("+g.sections+" \u00d7 9ft sections)";
+  addToTally(desc, g.price);
+  const sectionCost = g.sections*GARLAND_COSTS[g.type];
+  const bowCost = g.bows*BOW_12IN_COST;
+  tallyMat(GARLAND_LABELS[g.type]+" garland, 9ft sections", g.sections, sectionCost);
+  if(g.bows>0) tallyMat('12in standard bows', g.bows, bowCost);
+  renderShoppingList();
+  document.getElementById("garlandFt").value="";
+  updateGarlandPreview();
+}
+
+// wire up live previews
+["roofN","roofM","roofD"].forEach(id=>document.getElementById(id).addEventListener("input", updateRoofPreview));
+["walkFt"].forEach(id=>document.getElementById(id).addEventListener("input", updateWalkPreview));
+["pillarDiam","pillarHeight","pillarQty"].forEach(id=>document.getElementById(id).addEventListener("input", updatePillarPreview));
+["treeTrunkDiam","treeTrunkH","treeCanopyWidth","treeTotalH","treeQty"].forEach(id=>document.getElementById(id).addEventListener("input", updateTreePreview));
+["garlandFt","garlandType"].forEach(id=>document.getElementById(id).addEventListener("input", updateGarlandPreview));
+
+renderTally();
+renderShoppingList();
+</script>
+
+</body>
+</html>
